@@ -1,4 +1,4 @@
-import mysql from "mysql";
+import mysql from "mysql2";
 
 // TODO create .env file and add the following variables
 export const db = mysql.createConnection({
@@ -7,3 +7,5 @@ export const db = mysql.createConnection({
   password: "root",
   database: "blog",
 });
+
+console.log("Connected to database!");
