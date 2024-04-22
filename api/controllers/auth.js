@@ -7,7 +7,6 @@ export async function register(req, res) {
   const querySelect = "SELECT * FROM users WHERE email = ? OR username = ?";
   const email = req.body.email;
   const username = req.body.username;
-  console.log("Register with: ", req.body);
 
   try {
     const [data] = await db.query(querySelect, [email, username]);

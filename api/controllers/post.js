@@ -3,9 +3,6 @@ import jwt from "jsonwebtoken";
 import util from "util";
 
 export async function getPosts(req, res) {
-  // TODO add logging middleware
-  console.log("Gettting posts...");
-
   // TODO add validation middleware with JOI
   const category = req.query.cat;
 
@@ -29,8 +26,6 @@ export async function getPosts(req, res) {
 }
 
 export async function getPost(req, res) {
-  console.log("Getting post");
-
   const postId = req.params.id;
   const query =
     "SELECT p.id, `username`, `title`, `desc`, p.img, u.img AS userImg, `cat`,`date` FROM users u JOIN posts p ON u.id = p.uid WHERE p.id = ? ";
@@ -52,10 +47,9 @@ export async function addPost(req, res) {
   if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
   try {
+    // TODO add auth middleware and log user info
     const verify = util.promisify(jwt.verify);
     const userInfo = await verify(token, "jwtkey");
-
-    console.log("Adding post with user: ", userInfo);
 
     const query =
       "INSERT INTO posts(`title`, `desc`, `img`, `cat`, `date`,`uid`) VALUES (?, ?, ?, ?, NOW(), ?)";
@@ -88,8 +82,6 @@ export async function deletePost(req, res) {
     const verify = util.promisify(jwt.verify);
     const userInfo = await verify(token, "jwtkey");
 
-    console.log("Deleting post with user: ", userInfo);
-
     const query = "DELETE FROM posts WHERE `id` = ? AND `uid` = ?";
 
     const queryParams = [req.params.id, userInfo.id];
@@ -113,8 +105,6 @@ export async function updatePost(req, res) {
   try {
     const verify = util.promisify(jwt.verify);
     const userInfo = await verify(token, "jwtkey");
-
-    console.log("Updating post with user: ", userInfo);
 
     const query =
       "UPDATE posts SET `title`=?,`desc`=?,`img`=?,`cat`=? WHERE `id` = ? AND `uid` = ?";

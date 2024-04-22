@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon --env-file=.env index.js"
+    "start": "nodemon --env-file=.env index.js | pino-pretty -i hostname,req.headers,req.remoteAddress,req.remotePort,res.headers,log\\.domain\\.corp/foo"
   },
   "keywords": [],
   "author": "",
