@@ -51,8 +51,6 @@ export async function addPost(req, res) {
   const token = req.cookies.access_token;
   if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
-  console.log("Adding post with user: ", token);
-
   try {
     const verify = util.promisify(jwt.verify);
     const userInfo = await verify(token, "jwtkey");
@@ -70,10 +68,9 @@ export async function addPost(req, res) {
       userInfo.id,
     ];
 
-    await db.execute(query, queryParams);
+    const [results] = await db.execute(query, queryParams);
 
-    // TODO return the id of the post
-    return res.json({ message: "Post has been created." });
+    return res.json({ id: results.insertId });
   } catch (error) {
     console.error(error);
     if (error.name === "JsonWebTokenError") {

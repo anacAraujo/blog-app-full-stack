@@ -2,7 +2,6 @@ import mysql from "mysql2/promise";
 
 // Create the connection pool. The pool-specific settings are the defaults
 export const db = mysql.createPool({
-  // TODO create .env file and add the following variables
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_DATABASE,
