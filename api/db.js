@@ -3,10 +3,11 @@ import mysql from "mysql2/promise";
 // Create the connection pool. The pool-specific settings are the defaults
 export const db = mysql.createPool({
   // TODO create .env file and add the following variables
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "blog",
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_DATABASE,
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
   waitForConnections: true,
   connectionLimit: 10,
   maxIdle: 10, // max idle connections, the default value is the same as `connectionLimit`
