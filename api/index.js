@@ -1,4 +1,5 @@
 import express from "express";
+import pino from "express-pino-logger";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import postRoutes from "./routes/posts.js";
@@ -7,6 +8,7 @@ import multer from "multer";
 
 const app = express();
 
+app.use(pino());
 app.use(express.json());
 app.use(cookieParser());
 const storage = multer.diskStorage({
