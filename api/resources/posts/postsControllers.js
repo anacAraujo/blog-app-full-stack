@@ -1,18 +1,8 @@
-import { db } from "../db.js";
-import jwt from "jsonwebtoken";
 import util from "util";
-import Joi from "joi";
+import jwt from "jsonwebtoken";
 
-const getPostsSchema = Joi.object({
-  cat: Joi.string().valid(
-    "art",
-    "food",
-    "science",
-    "technology",
-    "cinema",
-    "design"
-  ),
-});
+import { db } from "../../db.js";
+import { getPostsSchema } from "./postsSchemas.js";
 
 export async function getPosts(req, res, next) {
   try {
