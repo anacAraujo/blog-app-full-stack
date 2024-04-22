@@ -1,7 +1,8 @@
-import mysql from "mysql2";
+import mysql from "mysql2/promise";
 
-// TODO create .env file and add the following variables
-export const db = mysql.createConnection({
+// Create the connection to database
+export const db = await mysql.createConnection({
+  // TODO create .env file and add the following variables
   host: "localhost",
   user: "root",
   password: "root",

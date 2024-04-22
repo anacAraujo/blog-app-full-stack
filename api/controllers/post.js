@@ -1,94 +1,143 @@
 import { db } from "../db.js";
 import jwt from "jsonwebtoken";
+import util from "util";
 
-export const getPosts = (req, res) => {
-  const q = req.query.cat
-    ? "SELECT * FROM posts WHERE cat=?"
-    : "SELECT * FROM posts";
-
+export async function getPosts(req, res) {
+  // TODO add logging middleware
   console.log("Gettting posts...");
 
-  db.query(q, [req.query.cat], (err, data) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Internal server error!" });
-    }
+  // TODO add validation middleware with JOI
+  const category = req.query.cat;
 
-    return res.status(200).json(data);
-  });
-};
+  let query = "SELECT * FROM posts";
+  let queryParams = [];
 
-export const getPost = (req, res) => {
-  const q =
+  if (category) {
+    query = "SELECT * FROM posts WHERE cat=?";
+    queryParams = [category];
+  }
+
+  try {
+    const [results] = await db.execute(query, queryParams);
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({ message: "Internal server error!" });
+  }
+}
+
+export async function getPost(req, res) {
+  console.log("Getting post");
+
+  const postId = req.params.id;
+  const query =
     "SELECT p.id, `username`, `title`, `desc`, p.img, u.img AS userImg, `cat`,`date` FROM users u JOIN posts p ON u.id = p.uid WHERE p.id = ? ";
 
-  db.query(q, [req.params.id], (err, data) => {
-    if (err) return res.status(500).json(err);
+  try {
+    const [results] = await db.execute(query, [postId]);
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Post not found!" });
+    }
+    res.status(200).json(results[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error!" });
+  }
+}
 
-    return res.status(200).json(data[0]);
-  });
-};
-
-export const addPost = (req, res) => {
+export async function addPost(req, res) {
   const token = req.cookies.access_token;
-  if (!token) return res.status(401).json("Not authenticated!");
+  if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
-  jwt.verify(token, "jwtkey", (err, userInfo) => {
-    if (err) return res.status(403).json("Token is not valid!");
+  console.log("Adding post with user: ", token);
 
-    const q =
-      "INSERT INTO posts(`title`, `desc`, `img`, `cat`, `date`,`uid`) VALUES (?)";
+  try {
+    const verify = util.promisify(jwt.verify);
+    const userInfo = await verify(token, "jwtkey");
 
-    const values = [
+    console.log("Adding post with user: ", userInfo);
+
+    const query =
+      "INSERT INTO posts(`title`, `desc`, `img`, `cat`, `date`,`uid`) VALUES (?, ?, ?, ?, NOW(), ?)";
+
+    const queryParams = [
       req.body.title,
       req.body.desc,
       req.body.img,
       req.body.cat,
-      req.body.date,
       userInfo.id,
     ];
 
-    db.query(q, [values], (err, data) => {
-      if (err) return res.status(500).json(err);
-      return res.json("Post has been created.");
-    });
-  });
-};
+    await db.execute(query, queryParams);
 
-export const deletePost = (req, res) => {
+    // TODO return the id of the post
+    return res.json({ message: "Post has been created." });
+  } catch (error) {
+    console.error(error);
+    if (error.name === "JsonWebTokenError") {
+      return res.status(403).json({ message: "Token is not valid!" });
+    }
+    return res.status(500).json({ message: "Internal server error!" });
+  }
+}
+
+export async function deletePost(req, res) {
   const token = req.cookies.access_token;
-  if (!token) return res.status(401).json("Not authenticated!");
+  if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
-  jwt.verify(token, "jwtkey", (err, userInfo) => {
-    if (err) return res.status(403).json("Token is not valid!");
+  try {
+    const verify = util.promisify(jwt.verify);
+    const userInfo = await verify(token, "jwtkey");
 
-    const postId = req.params.id;
-    const q = "DELETE FROM posts WHERE `id` = ? AND `uid` = ?";
+    console.log("Deleting post with user: ", userInfo);
 
-    db.query(q, [postId, userInfo.id], (err, data) => {
-      if (err) return res.status(403).json("You can delete only your post!");
+    const query = "DELETE FROM posts WHERE `id` = ? AND `uid` = ?";
 
-      return res.json("Post has been deleted!");
-    });
-  });
-};
+    const queryParams = [req.params.id, userInfo.id];
 
-export const updatePost = (req, res) => {
+    await db.execute(query, queryParams);
+    return res.json({ message: "Post has been deleted." });
+  } catch (error) {
+    console.error(error);
+    if (error.name === "JsonWebTokenError") {
+      return res.status(403).json({ message: "Token is not valid!" });
+    }
+    return res.status(500).json({ message: "Internal server error!" });
+  }
+}
+
+//TODO keep img - only update if new img is uploaded
+export async function updatePost(req, res) {
   const token = req.cookies.access_token;
-  if (!token) return res.status(401).json("Not authenticated!");
+  if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
-  jwt.verify(token, "jwtkey", (err, userInfo) => {
-    if (err) return res.status(403).json("Token is not valid!");
+  try {
+    const verify = util.promisify(jwt.verify);
+    const userInfo = await verify(token, "jwtkey");
 
-    const postId = req.params.id;
-    const q =
+    console.log("Updating post with user: ", userInfo);
+
+    const query =
       "UPDATE posts SET `title`=?,`desc`=?,`img`=?,`cat`=? WHERE `id` = ? AND `uid` = ?";
 
-    const values = [req.body.title, req.body.desc, req.body.img, req.body.cat];
+    const queryParams = [
+      req.body.title,
+      req.body.desc,
+      req.body.img,
+      req.body.cat,
+      req.params.id,
+      userInfo.id,
+    ];
 
-    db.query(q, [...values, postId, userInfo.id], (err, data) => {
-      if (err) return res.status(500).json(err);
-      return res.json("Post has been updated.");
-    });
-  });
-};
+    await db.execute(query, queryParams);
+    return res.json({ message: "Post has been updated." });
+  } catch (error) {
+    console.error(error);
+    if (error.name === "JsonWebTokenError") {
+      return res.status(403).json({ message: "Token is not valid!" });
+    }
+    return res.status(500).json({ message: "Internal server error!" });
+  }
+}

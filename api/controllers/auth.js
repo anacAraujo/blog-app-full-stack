@@ -2,41 +2,42 @@ import { db } from "../db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-export const register = (req, res) => {
+export async function register(req, res) {
   //CHECK EXISTING USER
-  const q = "SELECT * FROM users WHERE email = ? OR username = ?";
-
+  const querySelect = "SELECT * FROM users WHERE email = ? OR username = ?";
+  const email = req.body.email;
+  const username = req.body.username;
   console.log("Register with: ", req.body);
 
-  db.query(q, [req.body.email, req.body.username], (err, data) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Internal server error!" });
-    }
-    if (data.length) return res.status(409).json("User already exists!");
+  try {
+    const [data] = await db.query(querySelect, [email, username]);
+    if (data.length)
+      return res.status(409).json({ message: "User already exists!" });
 
     //Hash the password and create a user
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(req.body.password, salt);
 
-    const q = "INSERT INTO users(`username`,`email`,`password`) VALUES (?)";
-    const values = [req.body.username, req.body.email, hash];
+    const queryInsert =
+      "INSERT INTO users(`username`,`email`,`password`) VALUES (?)";
+    const queryParams = [username, email, hash];
 
-    db.query(q, [values], (err, data) => {
-      if (err) return res.status(500).json(err);
-      return res.status(200).json("User has been created.");
-    });
-  });
-};
+    await db.query(queryInsert, [queryParams]);
+    return res.status(200).json({ message: "User has been created." });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error!" });
+  }
+}
 
-export const login = (req, res) => {
+export const login = async (req, res) => {
   //CHECK USER
-
   const q = "SELECT * FROM users WHERE username = ?";
 
-  db.query(q, [req.body.username], (err, data) => {
-    if (err) return res.status(500).json(err);
-    if (data.length === 0) return res.status(404).json("User not found!");
+  try {
+    const [data] = await db.query(q, [req.body.username]);
+    if (data.length === 0)
+      return res.status(404).json({ message: "User not found!" });
 
     //Check password
     const isPasswordCorrect = bcrypt.compareSync(
@@ -45,7 +46,7 @@ export const login = (req, res) => {
     );
 
     if (!isPasswordCorrect)
-      return res.status(400).json("Wrong username or password!");
+      return res.status(400).json({ message: "Wrong username or password!" });
 
     const token = jwt.sign({ id: data[0].id }, "jwtkey");
     const { password, ...other } = data[0];
@@ -56,15 +57,23 @@ export const login = (req, res) => {
       })
       .status(200)
       .json(other);
-  });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error!" });
+  }
 };
 
-export const logout = (req, res) => {
-  res
-    .clearCookie("access_token", {
-      sameSite: "none",
-      secure: true,
-    })
-    .status(200)
-    .json("User has been logged out.");
-};
+export async function logout(req, res) {
+  try {
+    res
+      .clearCookie("access_token", {
+        sameSite: "none",
+        secure: true,
+      })
+      .status(200)
+      .json({ message: "User has been logged out." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error!" });
+  }
+}
