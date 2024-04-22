@@ -1,27 +1,37 @@
 import { db } from "../db.js";
 import jwt from "jsonwebtoken";
 import util from "util";
+import Joi from "joi";
 
-export async function getPosts(req, res) {
-  // TODO add validation middleware with JOI
-  const category = req.query.cat;
+const getPostsSchema = Joi.object({
+  cat: Joi.string().valid(
+    "art",
+    "food",
+    "science",
+    "technology",
+    "cinema",
+    "design"
+  ),
+});
 
-  let query = "SELECT * FROM posts";
-  let queryParams = [];
-
-  if (category) {
-    query = "SELECT * FROM posts WHERE cat=?";
-    queryParams = [category];
-  }
-
+export async function getPosts(req, res, next) {
   try {
+    const { cat: category } = await getPostsSchema.validateAsync(req.query);
+    // const category = params.cat; // Object destructuring
+
+    let query = "SELECT * FROM posts";
+    let queryParams = [];
+
+    if (category) {
+      query = "SELECT * FROM posts WHERE cat=?";
+      queryParams = [category];
+    }
+
     const [results] = await db.execute(query, queryParams);
 
     res.status(200).json(results);
   } catch (error) {
-    console.error(error);
-
-    res.status(500).json({ message: "Internal server error!" });
+    next(error);
   }
 }
 
