@@ -12,7 +12,7 @@ const Write = () => {
   const [file, setFile] = useState(null);
   const [cat, setCat] = useState(state?.cat || "");
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const upload = async () => {
     try {
@@ -29,22 +29,22 @@ const Write = () => {
     e.preventDefault();
     const imgUrl = await upload();
 
+    const body = {
+      title,
+      desc: value,
+      cat,
+      img: file ? imgUrl : "",
+    };
+    console.log("Body: ", body);
+
     try {
-      state
-        ? await axios.put(`/posts/${state.id}`, {
-            title,
-            desc: value,
-            cat,
-            img: file ? imgUrl : "",
-          })
-        : await axios.post(`/posts/`, {
-            title,
-            desc: value,
-            cat,
-            img: file ? imgUrl : "",
-            date: moment(Date.now()).format("YYYY-MM-DD HH:mm:ss"),
-          });
-          navigate("/")
+      if (state) {
+        await axios.put(`/posts/${state.id}`, body);
+      } else {
+        await axios.post(`/posts/`, body);
+      }
+
+      navigate("/");
     } catch (err) {
       console.log(err);
     }
