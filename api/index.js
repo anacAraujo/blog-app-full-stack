@@ -4,6 +4,7 @@ import authRoutes from "./resources/auth/authRoutes.js";
 import postRoutes from "./resources/posts/postsRoutes.js";
 import cookieParser from "cookie-parser";
 import multer from "multer";
+import { errorHandlerMiddleware } from "./middlewares/errorHandler.js";
 
 const app = express();
 
@@ -29,22 +30,6 @@ app.post("/api/upload", upload.single("file"), function (req, res) {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
-
-const errorHandlerMiddleware = (error, req, res, next) => {
-  req.log.error(error);
-
-  switch (error.name) {
-    case "ValidationError":
-      const message = error.details[0].message;
-      res.status(400).json({ message });
-      break;
-    case "JsonWebTokenError":
-      res.status(403).json({ message: "Token is not valid!" });
-      break;
-    default:
-      res.status(500).json({ message: "Internal server error!" });
-  }
-};
 
 app.use(errorHandlerMiddleware);
 
