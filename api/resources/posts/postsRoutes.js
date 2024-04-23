@@ -6,13 +6,14 @@ import {
   getPosts,
   updatePost,
 } from "./postsControllers.js";
+import { authMiddleware } from "../../middlewares/auth.js";
 
 const router = express.Router();
 
 router.get("/", getPosts);
 router.get("/:id", getPost);
-router.post("/", addPost);
-router.delete("/:id", deletePost);
-router.put("/:id", updatePost);
+router.post("/", authMiddleware, addPost);
+router.delete("/:id", authMiddleware, deletePost);
+router.put("/:id", authMiddleware, updatePost);
 
 export default router;

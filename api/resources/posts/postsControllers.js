@@ -1,6 +1,3 @@
-import util from "util";
-import jwt from "jsonwebtoken";
-
 import { db } from "../../db.js";
 import {
   addPostSchema,
@@ -47,15 +44,8 @@ export async function getPost(req, res, next) {
 }
 
 export async function addPost(req, res, next) {
-  const token = req.cookies.access_token;
-  if (!token) return res.status(401).json({ message: "Not authenticated!" });
-
   try {
     const params = await addPostSchema.validateAsync(req.body);
-
-    // TODO add auth middleware and log user info
-    const verify = util.promisify(jwt.verify);
-    const userInfo = await verify(token, "jwtkey");
 
     const query =
       "INSERT INTO posts(`title`, `desc`, `img`, `cat`, `date`,`uid`) VALUES (?, ?, ?, ?, NOW(), ?)";
@@ -65,7 +55,7 @@ export async function addPost(req, res, next) {
       params.desc,
       params.img,
       params.cat,
-      userInfo.id,
+      req.userInfo.id,
     ];
 
     const [results] = await db.execute(query, queryParams);
@@ -77,18 +67,12 @@ export async function addPost(req, res, next) {
 }
 
 export async function deletePost(req, res, next) {
-  const token = req.cookies.access_token;
-  if (!token) return res.status(401).json({ message: "Not authenticated!" });
-
   try {
     const params = await idSchema.validateAsync(req.params);
 
-    const verify = util.promisify(jwt.verify);
-    const userInfo = await verify(token, "jwtkey");
-
     const query = "DELETE FROM posts WHERE `id` = ? AND `uid` = ?";
 
-    const queryParams = [params.id, userInfo.id];
+    const queryParams = [params.id, req.userInfo.id];
 
     await db.execute(query, queryParams);
     return res.json({ message: "Post has been deleted." });
@@ -98,26 +82,20 @@ export async function deletePost(req, res, next) {
 }
 
 export async function updatePost(req, res, next) {
-  const token = req.cookies.access_token;
-  if (!token) return res.status(401).json({ message: "Not authenticated!" });
-
   try {
     const params = await updatePostSchema.validateAsync({
       ...req.body,
       ...req.params,
     });
 
-    const verify = util.promisify(jwt.verify);
-    const userInfo = await verify(token, "jwtkey");
-
     const [currentPost] = await db.execute(
       "SELECT `img` FROM posts WHERE `id` = ? AND `uid` = ?",
-      [params.id, userInfo.id]
+      [params.id, req.userInfo.id]
     );
 
     const queryParams = {
       ...params,
-      uid: userInfo.id,
+      uid: req.userInfo.id,
     };
 
     let imgQueryPart = "";
