@@ -28,8 +28,11 @@ export async function getPost(req, res, next) {
   try {
     const params = await idSchema.validateAsync(req.params);
 
-    const query =
-      "SELECT p.id, `username`, `title`, `desc`, p.img, u.img AS userImg, `cat`,`date` FROM users u JOIN posts p ON u.id = p.uid WHERE p.id = ? ";
+    const query = `
+      SELECT p.*, u.img AS userImg 
+      FROM posts p
+        JOIN users u ON u.id = p.uid 
+      WHERE p.id = ? `;
 
     const [results] = await db.execute(query, [params.id]);
 
@@ -48,13 +51,14 @@ export async function addPost(req, res, next) {
     const params = await addPostSchema.validateAsync(req.body);
 
     const query =
-      "INSERT INTO posts(`title`, `desc`, `img`, `cat`, `date`,`uid`) VALUES (?, ?, ?, ?, NOW(), ?)";
+      "INSERT INTO posts(`title`, `desc`, `img`, `cat`, `video`, `date`,`uid`) VALUES (?, ?, ?, ?, ?, NOW(), ?)";
 
     const queryParams = [
       params.title,
       params.desc,
       params.img,
       params.cat,
+      params.video,
       req.userInfo.id,
     ];
 
@@ -103,8 +107,9 @@ export async function updatePost(req, res, next) {
       imgQueryPart = ",`img`=:img ";
     }
 
+    // TODO check if video is changed and update it or not
     const query =
-      "UPDATE posts SET `title`=:title,`desc`=:desc,`cat`=:cat" +
+      "UPDATE posts SET `title`=:title,`desc`=:desc,`cat`=:cat, `video`=:video," +
       imgQueryPart +
       " WHERE `id` = :id AND `uid` = :uid";
 
