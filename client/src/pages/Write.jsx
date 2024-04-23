@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import axios from "axios";
+import axios from "../lib/axiosConfig";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const Write = () => {
