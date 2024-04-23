@@ -10,6 +10,7 @@ const Write = () => {
   const [value, setValue] = useState(state?.desc || "");
   const [title, setTitle] = useState(state?.title || "");
   const [file, setFile] = useState(null);
+  const [fileVideo, setFileVideo] = useState(null);
   const [cat, setCat] = useState(state?.cat || "");
 
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const Write = () => {
       const formData = new FormData();
       formData.append("file", file);
       const res = await axios.post("/upload", formData);
-      return res.data;
+      return res.data.filename;
     } catch (err) {
       console.log(err);
     }
