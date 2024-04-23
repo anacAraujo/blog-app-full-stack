@@ -8,6 +8,7 @@ import moment from "moment";
 import { useContext } from "react";
 import { AuthContext } from "../context/authContext";
 import DOMPurify from "dompurify";
+import ReactPlayer from "react-player";
 
 const Single = () => {
   const [post, setPost] = useState({});
@@ -69,7 +70,19 @@ const Single = () => {
           dangerouslySetInnerHTML={{
             __html: DOMPurify.sanitize(post.desc),
           }}
-        ></p>{" "}
+        ></p>
+        {post.video ? (
+          <ReactPlayer
+            url={`../upload/${post?.video}`}
+            width="100%"
+            height="auto"
+            playing={true}
+            loop={true}
+            controls={false}
+          />
+        ) : (
+          ""
+        )}
       </div>
       <Menu cat={post.cat} />
     </div>

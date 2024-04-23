@@ -3,19 +3,18 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
-import moment from "moment";
 
 const Write = () => {
   const state = useLocation().state;
   const [value, setValue] = useState(state?.desc || "");
   const [title, setTitle] = useState(state?.title || "");
-  const [file, setFile] = useState(null);
+  const [fileImg, setFileImg] = useState(null);
   const [fileVideo, setFileVideo] = useState(null);
   const [cat, setCat] = useState(state?.cat || "");
 
   const navigate = useNavigate();
 
-  const upload = async () => {
+  const upload = async (file) => {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -28,13 +27,23 @@ const Write = () => {
 
   const handleClick = async (e) => {
     e.preventDefault();
-    const imgUrl = await upload();
+
+    let imgUrl = "";
+    let videoUrl = "";
+
+    if (fileImg) {
+      imgUrl = await upload(fileImg);
+    }
+    if (fileVideo) {
+      videoUrl = await upload(fileVideo);
+    }
 
     const body = {
       title,
       desc: value,
       cat,
-      img: file ? imgUrl : "",
+      img: imgUrl,
+      video: videoUrl,
     };
     console.log("Body: ", body);
 
@@ -81,12 +90,22 @@ const Write = () => {
           <input
             style={{ display: "none" }}
             type="file"
-            id="file"
+            id="fileImg"
             name=""
-            onChange={(e) => setFile(e.target.files[0])}
+            onChange={(e) => setFileImg(e.target.files[0])}
           />
-          <label className="file" htmlFor="file">
+          <label className="fileImg" htmlFor="fileImg">
             Upload Image
+          </label>
+          <input
+            style={{ display: "none" }}
+            type="file"
+            id="fileVideo"
+            name=""
+            onChange={(e) => setFileVideo(e.target.files[0])}
+          />
+          <label className="fileVideo" htmlFor="fileVideo">
+            Upload Vídeo
           </label>
           <div className="buttons">
             <button>Save as a draft</button>
