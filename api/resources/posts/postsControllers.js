@@ -14,14 +14,12 @@ export async function getPosts(req, res, next) {
     const params = await getPostsSchema.validateAsync(req.query);
 
     let query = "SELECT * FROM posts";
-    let queryParams = [];
 
     if (params.cat) {
-      query = "SELECT * FROM posts WHERE cat=?";
-      queryParams = [params.cat];
+      query += " WHERE cat=:cat";
     }
 
-    const [results] = await db.execute(query, queryParams);
+    const [results] = await db.execute(query, params);
 
     res.status(200).json(results);
   } catch (error) {
@@ -117,32 +115,22 @@ export async function updatePost(req, res, next) {
       [params.id, userInfo.id]
     );
 
+    const queryParams = {
+      ...params,
+      uid: userInfo.id,
+    };
+
+    let imgQueryPart = "";
     if (params.img && currentPost[0].img !== params.img) {
-      const query =
-        "UPDATE posts SET `title`=?,`desc`=?,`img`=?,`cat`=? WHERE `id` = ? AND `uid` = ?";
-
-      const queryParams = [
-        params.title,
-        params.desc,
-        params.img,
-        params.cat,
-        params.id,
-        userInfo.id,
-      ];
-      await db.execute(query, queryParams);
-    } else {
-      const query =
-        "UPDATE posts SET `title`=?,`desc`=?,`cat`=? WHERE `id` = ? AND `uid` = ?";
-
-      const queryParams = [
-        params.title,
-        params.desc,
-        params.cat,
-        params.id,
-        userInfo.id,
-      ];
-      await db.execute(query, queryParams);
+      imgQueryPart = ",`img`=:img ";
     }
+
+    const query =
+      "UPDATE posts SET `title`=:title,`desc`=:desc,`cat`=:cat" +
+      imgQueryPart +
+      " WHERE `id` = :id AND `uid` = :uid";
+
+    await db.execute(query, queryParams);
 
     return res.json({ message: "Post has been updated." });
   } catch (error) {

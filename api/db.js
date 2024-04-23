@@ -7,6 +7,7 @@ export const db = mysql.createPool({
   database: process.env.DB_DATABASE,
   user: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
+  namedPlaceholders: true,
   waitForConnections: true,
   connectionLimit: 10,
   maxIdle: 10, // max idle connections, the default value is the same as `connectionLimit`
