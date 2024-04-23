@@ -2,19 +2,23 @@ import util from "util";
 import jwt from "jsonwebtoken";
 
 import { db } from "../../db.js";
-import { getPostsSchema } from "./postsSchemas.js";
+import {
+  addPostSchema,
+  getPostsSchema,
+  idSchema,
+  updatePostSchema,
+} from "./postsSchemas.js";
 
 export async function getPosts(req, res, next) {
   try {
-    const { cat: category } = await getPostsSchema.validateAsync(req.query);
-    // const category = params.cat; // Object destructuring
+    const params = await getPostsSchema.validateAsync(req.query);
 
     let query = "SELECT * FROM posts";
     let queryParams = [];
 
-    if (category) {
+    if (params.cat) {
       query = "SELECT * FROM posts WHERE cat=?";
-      queryParams = [category];
+      queryParams = [params.cat];
     }
 
     const [results] = await db.execute(query, queryParams);
@@ -25,28 +29,32 @@ export async function getPosts(req, res, next) {
   }
 }
 
-export async function getPost(req, res) {
-  const postId = req.params.id;
-  const query =
-    "SELECT p.id, `username`, `title`, `desc`, p.img, u.img AS userImg, `cat`,`date` FROM users u JOIN posts p ON u.id = p.uid WHERE p.id = ? ";
-
+export async function getPost(req, res, next) {
   try {
-    const [results] = await db.execute(query, [postId]);
+    const params = await idSchema.validateAsync(req.params);
+
+    const query =
+      "SELECT p.id, `username`, `title`, `desc`, p.img, u.img AS userImg, `cat`,`date` FROM users u JOIN posts p ON u.id = p.uid WHERE p.id = ? ";
+
+    const [results] = await db.execute(query, [params.id]);
+
     if (results.length === 0) {
       return res.status(404).json({ message: "Post not found!" });
     }
+
     res.status(200).json(results[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error!" });
+    next(error);
   }
 }
 
-export async function addPost(req, res) {
+export async function addPost(req, res, next) {
   const token = req.cookies.access_token;
   if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
   try {
+    const params = await addPostSchema.validateAsync(req.body);
+
     // TODO add auth middleware and log user info
     const verify = util.promisify(jwt.verify);
     const userInfo = await verify(token, "jwtkey");
@@ -55,10 +63,10 @@ export async function addPost(req, res) {
       "INSERT INTO posts(`title`, `desc`, `img`, `cat`, `date`,`uid`) VALUES (?, ?, ?, ?, NOW(), ?)";
 
     const queryParams = [
-      req.body.title,
-      req.body.desc,
-      req.body.img,
-      req.body.cat,
+      params.title,
+      params.desc,
+      params.img,
+      params.cat,
       userInfo.id,
     ];
 
@@ -66,65 +74,78 @@ export async function addPost(req, res) {
 
     return res.json({ id: results.insertId });
   } catch (error) {
-    console.error(error);
-    if (error.name === "JsonWebTokenError") {
-      return res.status(403).json({ message: "Token is not valid!" });
-    }
-    return res.status(500).json({ message: "Internal server error!" });
+    next(error);
   }
 }
 
-export async function deletePost(req, res) {
+export async function deletePost(req, res, next) {
   const token = req.cookies.access_token;
   if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
   try {
+    const params = await idSchema.validateAsync(req.params);
+
     const verify = util.promisify(jwt.verify);
     const userInfo = await verify(token, "jwtkey");
 
     const query = "DELETE FROM posts WHERE `id` = ? AND `uid` = ?";
 
-    const queryParams = [req.params.id, userInfo.id];
+    const queryParams = [params.id, userInfo.id];
 
     await db.execute(query, queryParams);
     return res.json({ message: "Post has been deleted." });
   } catch (error) {
-    console.error(error);
-    if (error.name === "JsonWebTokenError") {
-      return res.status(403).json({ message: "Token is not valid!" });
-    }
-    return res.status(500).json({ message: "Internal server error!" });
+    next(error);
   }
 }
 
-//TODO keep img - only update if new img is uploaded
-export async function updatePost(req, res) {
+export async function updatePost(req, res, next) {
   const token = req.cookies.access_token;
   if (!token) return res.status(401).json({ message: "Not authenticated!" });
 
   try {
+    const params = await updatePostSchema.validateAsync({
+      ...req.body,
+      ...req.params,
+    });
+
     const verify = util.promisify(jwt.verify);
     const userInfo = await verify(token, "jwtkey");
 
-    const query =
-      "UPDATE posts SET `title`=?,`desc`=?,`img`=?,`cat`=? WHERE `id` = ? AND `uid` = ?";
+    const [currentPost] = await db.execute(
+      "SELECT `img` FROM posts WHERE `id` = ? AND `uid` = ?",
+      [params.id, userInfo.id]
+    );
 
-    const queryParams = [
-      req.body.title,
-      req.body.desc,
-      req.body.img,
-      req.body.cat,
-      req.params.id,
-      userInfo.id,
-    ];
+    if (params.img && currentPost[0].img !== params.img) {
+      const query =
+        "UPDATE posts SET `title`=?,`desc`=?,`img`=?,`cat`=? WHERE `id` = ? AND `uid` = ?";
 
-    await db.execute(query, queryParams);
+      const queryParams = [
+        params.title,
+        params.desc,
+        params.img,
+        params.cat,
+        params.id,
+        userInfo.id,
+      ];
+      await db.execute(query, queryParams);
+    } else {
+      const query =
+        "UPDATE posts SET `title`=?,`desc`=?,`cat`=? WHERE `id` = ? AND `uid` = ?";
+
+      const queryParams = [
+        params.title,
+        params.desc,
+        params.cat,
+        params.id,
+        userInfo.id,
+      ];
+      await db.execute(query, queryParams);
+    }
+
     return res.json({ message: "Post has been updated." });
   } catch (error) {
-    console.error(error);
-    if (error.name === "JsonWebTokenError") {
-      return res.status(403).json({ message: "Token is not valid!" });
-    }
-    return res.status(500).json({ message: "Internal server error!" });
+    next(error);
   }
 }
