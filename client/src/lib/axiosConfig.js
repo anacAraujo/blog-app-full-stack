@@ -1,8 +1,7 @@
 import axios from "axios";
 
-const instance = axios.create({
-  baseURL: "http://localhost:8800/api/",
-});
+const instance = axios.create();
+//baseURL: "http://localhost:8800/api/"
 
 // // Also add/ configure interceptors && all the other cool stuff
 // instance.interceptors.request.use(
