@@ -2,15 +2,14 @@ import express from "express";
 import logger from "pino-http";
 import cookieParser from "cookie-parser";
 import multer from "multer";
-import cors from "cors";
 
 import authRoutes from "./resources/auth/authRoutes.js";
 import postRoutes from "./resources/posts/postsRoutes.js";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler.js";
 
+const port = process.env.PORT || 3000;
 const app = express();
 
-app.use(cors());
 app.use(logger());
 app.use(express.json());
 app.use(cookieParser());
@@ -41,6 +40,6 @@ app.use(function (req, res, next) {
 
 app.use(errorHandlerMiddleware);
 
-app.listen(process.env.PORT, () => {
-  console.log("Started server!");
+app.listen(port, () => {
+  console.log("Started server in port: " + port);
 });
