@@ -15,10 +15,9 @@ app.use(logger());
 app.use(express.json());
 app.use(cookieParser());
 
-// TODO make upload path dynamic
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "../client/public/upload");
+    cb(null, process.env.UPLOAD_FOLDER);
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + "_" + file.originalname);
@@ -42,7 +41,6 @@ app.use(function (req, res, next) {
 
 app.use(errorHandlerMiddleware);
 
-// TODO make port dynamic
-app.listen(8800, () => {
+app.listen(process.env.PORT, () => {
   console.log("Started server!");
 });
